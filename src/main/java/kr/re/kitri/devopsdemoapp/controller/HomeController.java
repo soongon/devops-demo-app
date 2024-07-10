@@ -13,6 +13,6 @@ public class HomeController {
 
     @GetMapping("/about")
     public String about() {
-        return "kim kim kim soongon";
+        return "김순곤 입니다.";
     }
 }
