@@ -13,6 +13,6 @@ public class HomeController {
 
     @GetMapping("/about")
     public String about() {
-        return "두시 사분에 커밋한 내용";
+        return "두시 11분에 커밋한 내용";
     }
 }
