@@ -8,7 +8,7 @@ public class HomeController {
 
     @GetMapping("/")
     public String home() {
-        return "웹훅으로 트리거링.. ㄴㄴㄴㄹㄹㄹ";
+        return "웹훅으로 트리거링.. ㄴㄴㄴㄹㄹㄹㅇㄹㄹㄹ";
     }
 
     @GetMapping("/about")
