@@ -8,7 +8,7 @@ public class HomeController {
 
     @GetMapping("/")
     public String home() {
-        return "젠킨스 파이프라인 빌드 실행 데모..";
+        return "젠킨스 파이프라인 빌드 실행 데모.ㅌㅌㅌ.";
     }
 
     @GetMapping("/about")
