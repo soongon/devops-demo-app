@@ -2,49 +2,61 @@ pipeline {
     agent any
 
     environment {
-        GIT_REPO = 'https://github.com/soongon/devops-demo-app.git'
-        BRANCH = 'master'
-        MAVEN_GOALS = 'clean package'  // Maven 빌드 명령어
-        TOMCAT_CREDENTIALS_ID = 'tomcat-deployer'  // Tomcat 서버 자격 증명 ID
-        TOMCAT_URL = 'http://43.203.102.244:8080'  // Tomcat 서버 URL
+        SSH_SERVER = 'docker-host' // Publish over SSH 플러그인에서 설정한 SSH 서버 이름
+        REMOTE_DEPLOY_DIR = 'deployment' // WAR 파일을 전송할 원격 디렉토리
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // GitHub에서 소스 코드 체크아웃
-                git branch: "${BRANCH}", url: "${GIT_REPO}"
+                git 'https://github.com/soongon/devops-demo-app.git'
             }
         }
 
         stage('Build') {
             steps {
-                // Maven 빌드 수행
-                withMaven(maven: 'maven3') {  // Jenkins에 설정된 Maven 설치 이름, Pipleline Maven Integration 플러그인 설치 필요
-                    sh "mvn ${MAVEN_GOALS}"
+                withMaven(maven: 'maven3') { // 'maven3'은 Jenkins에서 설정한 Maven 설치 이름
+                    sh 'mvn clean package'
                 }
             }
         }
 
-        stage('Deploy to Tomcat') {
+        stage('Deploy') {
             steps {
-                script {
-                    // "Deploy WAR/EAR to a container" 플러그인 으로 톰캣서버에 디플로이
-                    deploy adapters:
-                           [tomcat9(credentialsId: "${TOMCAT_CREDENTIALS_ID}", url: "${TOMCAT_URL}")],
-                           contextPath: '/app',
-                           war: '**/target/*.war'
-                }
+                // WAR 파일 전송
+                sshPublisher(
+                    publishers: [
+                        sshPublisherDesc(
+                            configName: SSH_SERVER,
+                            transfers: [
+                                sshTransfer(
+                                    sourceFiles: '**/*.war',
+                                    removePrefix: 'target',
+                                    remoteDirectory: REMOTE_DEPLOY_DIR,
+                                    execCommand: """
+                                        cd ${REMOTE_DEPLOY_DIR} || exit 1;
+                                        docker stop tomcat-stage || true;
+                                        docker rm tomcat-stage || true;
+                                        docker rmi my-tomcat || true;
+                                        docker build -t my-tomcat . || exit 1;
+                                        docker run -d --name tomcat-stage -p 8080:8080 my-tomcat || exit 1;
+                                        rm *.war || exit 1;
+                                    """
+                                )
+                            ]
+                        )
+                    ]
+                )
             }
         }
     }
 
     post {
         success {
-            echo 'Deployment completed successfully!'
+            echo 'Deployment was successful!'
         }
         failure {
-            echo 'Deployment failed.'
+            echo 'Deployment failed!'
         }
     }
 }
